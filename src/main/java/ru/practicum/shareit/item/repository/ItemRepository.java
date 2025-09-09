@@ -8,10 +8,15 @@ import java.util.Optional;
 
 public interface ItemRepository {
     List<Item> findByUserId(long userId);
+
     Optional<Item> getItemById(Long itemId);
+
     List<Item> getItemsByText(String search);
+
     Item save(Item item);
+
     void deleteByUserIdAndItemId(long userId, long itemId);
+
     Item update(long userId, long itemId, ItemDto item);
 
     boolean isUserHasItem(long userId, long itemId);

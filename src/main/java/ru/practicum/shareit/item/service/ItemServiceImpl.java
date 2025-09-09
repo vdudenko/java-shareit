@@ -34,7 +34,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item addNewItem(Long userId, Item item) {
-        if(userRepository.isUserExist(userId)) {
+        if (userRepository.isUserExist(userId)) {
             item.setUserId(userId);
             return itemRepository.save(item);
         }
@@ -43,7 +43,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Item updateItem(Long userId, Long itemId, ItemDto item) {
-        if(userRepository.isUserExist(userId)) {
+        if (userRepository.isUserExist(userId)) {
             return itemRepository.update(userId, itemId, item);
         }
         throw new NotFoundException("Пользователь с id = " + userId + " не найден");

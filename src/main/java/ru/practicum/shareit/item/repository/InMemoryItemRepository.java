@@ -74,7 +74,8 @@ public class InMemoryItemRepository implements ItemRepository {
     @Override
     public void deleteByUserIdAndItemId(long userId, long itemId) {
         Item item = items.get(itemId);
-        if(item.getUserId() == userId) {
+
+        if (item.getUserId() == userId) {
             items.remove(itemId);
         }
     }
@@ -92,6 +93,7 @@ public class InMemoryItemRepository implements ItemRepository {
         String lowerSearch = search.toLowerCase().trim();
         return item.getName().toLowerCase().contains(lowerSearch) || item.getDescription().toLowerCase().contains(lowerSearch);
     }
+
     private boolean filterByAvailable(Item item) {
         return item.getAvailable();
     }

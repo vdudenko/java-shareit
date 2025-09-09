@@ -8,9 +8,14 @@ import java.util.Optional;
 
 public interface ItemService {
     List<Item> getItems(long userId);
+
     Item addNewItem(Long userId, Item item);
+
     Optional<Item> getItem(Long itemId);
+
     void deleteItem(Long userId, Long itemId);
+
     Item updateItem(Long userId, Long itemId, ItemDto item);
+
     List<Item> getItemsByText(String search);
 }
