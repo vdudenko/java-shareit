@@ -14,6 +14,12 @@ public class ExceptionHandler {
     }
 
     @org.springframework.web.bind.annotation.ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleNotAvailableException(final ru.practicum.shareit.exception.NotAvailableException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleDuplicatedDataException(final ru.practicum.shareit.exception.DuplicatedDataException e) {
         return new ErrorResponse(e.getMessage());
