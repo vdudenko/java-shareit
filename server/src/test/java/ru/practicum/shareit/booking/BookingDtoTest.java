@@ -37,25 +37,11 @@ public class BookingDtoTest {
 
         BookingDto parsed = bookingDtoJacksonTester.parseObject(result.getJson());
 
-        assertThat(result).hasJsonPath("$.start");
-        assertThat(result).extractingJsonPathStringValue("$.start")
-                .isEqualTo(bookingDto.getStart().toString());
-
-        assertThat(result).hasJsonPath("$.end");
-        assertThat(result).extractingJsonPathStringValue("$.end")
-                .isEqualTo(bookingDto.getEnd().toString());
-
-        assertThat(result).hasJsonPath("$.itemId");
-        assertThat(result).extractingJsonPathNumberValue("$.itemId")
-                .isEqualTo(bookingDto.getItemId().intValue());
-
-        assertThat(result).hasJsonPath("$.booker");
-        assertThat(result).extractingJsonPathNumberValue("$.booker")
-                .isEqualTo(bookingDto.getBooker().intValue());
-
-        assertThat(result).hasJsonPath("$.status");
-        assertThat(result).extractingJsonPathStringValue("$.status")
-                .isEqualTo(bookingDto.getStatus().name());
+        assertThat(parsed.getStart()).isEqualTo(bookingDto.getStart());
+        assertThat(parsed.getEnd()).isEqualTo(bookingDto.getEnd());
+        assertThat(parsed.getItemId()).isEqualTo(bookingDto.getItemId());
+        assertThat(parsed.getBooker()).isEqualTo(bookingDto.getBooker());
+        assertThat(parsed.getStatus()).isEqualTo(bookingDto.getStatus());
 
         BookingDto commentDtoForTest = bookingDtoJacksonTester.parseObject(result.getJson());
 
