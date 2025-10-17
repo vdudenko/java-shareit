@@ -130,11 +130,11 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Transactional
     @Override
-    public ItemRequest create(Long userId, ItemRequestDto itemRequestDtoShort) {
+    public ItemRequest create(Long userId, ItemRequestDto itemRequestDto) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new NotFoundException("Пользователь с таким Id " + userId + " не найден"));
 
-        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDtoShort);
+        ItemRequest itemRequest = ItemRequestMapper.toItemRequest(itemRequestDto);
         itemRequest.setRequestor(user);
         itemRequest.setCreated(LocalDateTime.now());
 
