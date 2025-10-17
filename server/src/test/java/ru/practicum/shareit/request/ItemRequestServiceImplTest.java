@@ -1,14 +1,15 @@
 package ru.practicum.shareit.request;
 
+import jakarta.validation.ValidationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestWithItemsDto;
@@ -18,16 +19,19 @@ import ru.practicum.shareit.request.service.ItemRequestServiceImpl;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ItemRequestServiceImplTest {
+
     @InjectMocks
     private ItemRequestServiceImpl itemRequestService;
 
@@ -35,167 +39,172 @@ public class ItemRequestServiceImplTest {
     private UserRepository userRepository;
 
     @Mock
-    ItemRepository itemRepository;
+    private ItemRepository itemRepository;
 
     @Mock
     private ItemRequestRepository itemRequestRepository;
 
-    @Test
-    void create() {
-        Long userId = 1L;
-        User user = User.builder()
-                .id(userId)
-                .name("Vadim")
-                .email("dudenko.vadim@google.com")
-                .build();
-
-        ItemRequestDto itemRequestDto = new ItemRequestDto("desc", userId);
-
-        ItemRequest itemRequestExpected = ItemRequest.builder()
-                .id(1L)
-                .description("desc")
-                .requestor(user)
-                .build();
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(itemRequestRepository.save(Mockito.any())).thenReturn(itemRequestExpected);
-
-        ItemRequest itemRequest = itemRequestService.create(userId, itemRequestDto);
-
-        assertThat(itemRequest).isEqualTo(itemRequestExpected);
-    }
+    private final LocalDateTime now = LocalDateTime.now();
 
     @Test
-    void createShouldReturnUserNotFound() {
+    void getByIdShouldReturnRequestWithItemsWhenUserAndRequestExist() {
         Long userId = 1L;
+        Long requestId = 2L;
 
-        when(userRepository.findById(Mockito.any())).thenReturn(Optional.empty());
-        ItemRequestDto itemRequestDto = new ItemRequestDto("desc", userId);
-
-        assertThrows(NotFoundException.class, () -> itemRequestService.create(userId, itemRequestDto));
-
-        Mockito.verify(itemRequestRepository, Mockito.never()).save(Mockito.any());
-    }
-
-    @Test
-    void getAllByRequester() {
-        Long userId = 1L;
-        User user = User.builder()
-                .id(userId)
-                .name("Vadim")
-                .email("dudenko.vadim@google.com")
-                .build();
-
+        User user = new User(userId, "User", "user@example.com");
         ItemRequest itemRequest = ItemRequest.builder()
-                .id(1L)
-                .description("desc")
+                .id(requestId)
+                .description("Need a drill")
                 .requestor(user)
+                .created(now)
                 .build();
 
-        Mockito.when(userRepository.existsById(userId)).thenReturn(true);
-        Mockito.when(itemRequestRepository.findByRequestorId(Mockito.eq(userId), Mockito.any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(itemRequest)));
-        Mockito.when(itemRepository.findByRequestIdIn(Mockito.anyList())).thenReturn(List.of());
+        Item item = Item.builder()
+                .id(10L)
+                .name("Drill")
+                .description("Powerful drill")
+                .available(true)
+                .request(itemRequest)
+                .build();
 
-        List<ItemRequestWithItemsDto> result = itemRequestService.getAllByRequester(userId, 0, 10);
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(itemRequestRepository.findById(requestId)).thenReturn(Optional.of(itemRequest));
+        when(itemRepository.findByRequestId(requestId)).thenReturn(List.of(item));
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getId()).isEqualTo(1L);
-        assertThat(result.get(0).getDescription()).isEqualTo("desc");
-        assertThat(result.get(0).getRequesterId()).isEqualTo(userId);
-        assertThat(result.get(0).getItems()).isEmpty();
+        ItemRequestWithItemsDto result = itemRequestService.getById(userId, requestId);
+
+        assertThat(result.getId()).isEqualTo(requestId);
+        assertThat(result.getDescription()).isEqualTo("Need a drill");
+        assertThat(result.getRequesterId()).isEqualTo(userId);
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getName()).isEqualTo("Drill");
     }
 
     @Test
-    void getAllByRequesterShouldReturnNotFoundException() {
-        Long userId = 1L;
-        Mockito.when(userRepository.existsById(Mockito.anyLong())).thenReturn(false);
-        assertThrows(NotFoundException.class, () -> itemRequestService.getAllByRequester(userId, 0, 10));
-        Mockito.verify(itemRequestRepository, Mockito.never()).findByRequestorId(Mockito.anyLong(), Mockito.any());
+    void getByIdShouldThrowNotFoundExceptionWhenUserNotFound() {
+        when(userRepository.existsById(999L)).thenReturn(false);
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> itemRequestService.getById(999L, 1L));
+        assertThat(exception.getMessage()).contains("Пользователя с таким id не существует:999");
     }
 
     @Test
-    void getAll() {
+    void getByIdShouldThrowNotFoundExceptionWhenRequestNotFound() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(itemRequestRepository.findById(999L)).thenReturn(Optional.empty());
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> itemRequestService.getById(1L, 999L));
+        assertThat(exception.getMessage()).contains("Запроса с таким id не существует:999");
+    }
+
+    @Test
+    void getAllShouldReturnOtherUsersRequests() {
         Long userId = 1L;
-        Long userId2 = 2L;     // владелец чужого запроса
-
-        User user2 = User.builder()
-                .id(userId2) // ← исправлено!
-                .name("Vadim")
-                .email("dudenko.vadim@gmail.com")
-                .build();
-
-        ItemRequest itemRequest2 = ItemRequest.builder()
+        ItemRequest request = ItemRequest.builder()
                 .id(2L)
-                .description("desc")
-                .requestor(user2)
+                .description("Need item")
+                .requestor(new User(2L, "Other", "other@example.com"))
+                .created(now)
                 .build();
 
-        Mockito.when(userRepository.existsById(userId)).thenReturn(true);
-
-        Mockito.when(itemRequestRepository.findByRequestorIdNot(Mockito.eq(userId), Mockito.any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(itemRequest2)));
-
-        Mockito.when(itemRepository.findByRequestIdIn(Mockito.anyList())).thenReturn(List.of());
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(itemRequestRepository.findByRequestorIdNot(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(request)));
+        when(itemRepository.findByRequestIdIn(anyList())).thenReturn(Collections.emptyList());
 
         List<ItemRequestWithItemsDto> result = itemRequestService.getAll(userId, 0, 10);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(2L);
-        assertThat(result.get(0).getDescription()).isEqualTo("desc");
-        assertThat(result.get(0).getRequesterId()).isEqualTo(userId2);
-        assertThat(result.get(0).getItems()).isEmpty();
+        assertThat(result.get(0).getRequesterId()).isEqualTo(2L);
     }
 
     @Test
-    void getAllShouldReturnNotFoundException() {
-        Long userId = 2L;
+    void getAllShouldReturnEmptyListWhenNoRequests() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(itemRequestRepository.findByRequestorIdNot(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        Mockito.when(userRepository.existsById(Mockito.anyLong())).thenReturn(false);
+        List<ItemRequestWithItemsDto> result = itemRequestService.getAll(1L, 0, 10);
 
-        assertThrows(NotFoundException.class, () -> itemRequestService.getAll(userId, 0, 10));
-
-        Mockito.verify(itemRequestRepository, Mockito.never()).findByRequestorIdNot(Mockito.anyLong(), Mockito.any());
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void getById() {
+    void getAllByRequesterShouldReturnOwnRequests() {
         Long userId = 1L;
-        Long requestId = 1L;
-        User user = User.builder()
-                .id(userId) // ← исправлено!
-                .name("Vadim")
-                .email("dudenko.vadim@gmail.com")
+        ItemRequest request = ItemRequest.builder()
+                .id(2L)
+                .description("My request")
+                .requestor(new User(userId, "Me", "me@example.com"))
+                .created(now)
                 .build();
 
-        ItemRequest itemRequest = ItemRequest.builder()
-                .id(requestId)
-                .description("desc")
-                .requestor(user)
-                .build();
+        when(userRepository.existsById(userId)).thenReturn(true);
+        when(itemRequestRepository.findByRequestorId(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(request)));
+        when(itemRepository.findByRequestIdIn(anyList())).thenReturn(Collections.emptyList());
 
-        Mockito.when(userRepository.existsById(Mockito.anyLong())).thenReturn(true);
-        Mockito.when(itemRequestRepository.findById(Mockito.anyLong())).thenReturn(Optional.of(itemRequest));
-        Mockito.when(itemRepository.findByRequestId(Mockito.anyLong())).thenReturn(List.of());
+        List<ItemRequestWithItemsDto> result = itemRequestService.getAllByRequester(userId, 0, 10);
 
-        ItemRequestWithItemsDto expected = ItemRequestWithItemsDto.builder()
-                .id(1L)
-                .description("desc")
-                .requesterId(userId)
-                .items(List.of())
-                .build();
-
-        ItemRequestWithItemsDto actual = itemRequestService.getById(userId, requestId);
-
-        assertEquals(expected, actual);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(2L);
+        assertThat(result.get(0).getRequesterId()).isEqualTo(userId);
     }
 
     @Test
-    void getByIdShouldReturnNotFoundException() {
-        Long userId = 2L;
+    void getAllByRequesterShouldThrowValidationExceptionWhenFromNegative() {
+        when(userRepository.existsById(1L)).thenReturn(true);
 
-        Mockito.when(userRepository.existsById(Mockito.anyLong())).thenReturn(false);
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> itemRequestService.getAllByRequester(1L, -1, 10));
+        assertThat(exception.getMessage()).contains("Некорректные параметры пагинации");
+    }
 
-        assertThrows(NotFoundException.class, () -> itemRequestService.getById(userId, 1L));
+    @Test
+    void getAllByRequesterShouldThrowValidationExceptionWhenSizeZero() {
+        when(userRepository.existsById(1L)).thenReturn(true);
+
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> itemRequestService.getAllByRequester(1L, 0, 0));
+        assertThat(exception.getMessage()).contains("Некорректные параметры пагинации");
+    }
+
+    @Test
+    void createShouldCreateItemRequest() {
+        Long userId = 1L;
+        ItemRequestDto dto = new ItemRequestDto("Need a book", null);
+        User user = new User(userId, "User", "user@example.com");
+
+        ItemRequest savedRequest = ItemRequest.builder()
+                .id(100L)
+                .description("Need a book")
+                .requestor(user)
+                .created(now)
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(itemRequestRepository.save(any(ItemRequest.class))).thenReturn(savedRequest);
+
+        ItemRequest result = itemRequestService.create(userId, dto);
+
+        assertThat(result.getId()).isEqualTo(100L);
+        assertThat(result.getDescription()).isEqualTo("Need a book");
+        assertThat(result.getRequestor().getId()).isEqualTo(userId);
+        verify(itemRequestRepository).save(argThat(req ->
+                req.getDescription().equals("Need a book") &&
+                        req.getRequestor().getId().equals(userId)
+        ));
+    }
+
+    @Test
+    void createShouldThrowNotFoundExceptionWhenUserNotFound() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> itemRequestService.create(999L, new ItemRequestDto("desc", null)));
+        assertThat(exception.getMessage()).contains("Пользователь с таким Id 999 не найден");
     }
 }
