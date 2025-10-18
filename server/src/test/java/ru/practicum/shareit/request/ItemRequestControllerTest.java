@@ -6,6 +6,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.ItemRequestWithItemsDto;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.utils.HeaderConstants.USER_ID_HEADER;
 
 @WebMvcTest(controllers = ItemRequestController.class)
 public class ItemRequestControllerTest {
@@ -51,8 +53,8 @@ public class ItemRequestControllerTest {
         Mockito.when(itemRequestService.create(Mockito.any(), Mockito.any())).thenReturn(itemRequest);
 
         String result = mockMvc.perform(post("/requests")
-                        .header("X-Sharer-User-Id", userId)
-                        .contentType("application/json")
+                        .header(USER_ID_HEADER, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(itemRequestDto)))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -79,7 +81,7 @@ public class ItemRequestControllerTest {
                 .thenReturn(List.of(itemRequest));
 
         String result = mockMvc.perform(get("/requests")
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .param("from", String.valueOf(from))
                         .param("size", String.valueOf(size)))
                 .andDo(print())
@@ -108,7 +110,7 @@ public class ItemRequestControllerTest {
                 .thenReturn(List.of(itemRequest));
 
         String result = mockMvc.perform(get("/requests/all")
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .param("from", String.valueOf(from))
                         .param("size", String.valueOf(size)))
                 .andDo(print())
@@ -134,7 +136,7 @@ public class ItemRequestControllerTest {
         Mockito.when(itemRequestService.getById(Mockito.anyLong(), Mockito.anyLong())).thenReturn(itemRequest);
 
         String result = mockMvc.perform(get("/requests/{requestId}", requestId)
-                        .header("X-Sharer-User-Id", 1))
+                        .header(USER_ID_HEADER, 1))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andReturn()
