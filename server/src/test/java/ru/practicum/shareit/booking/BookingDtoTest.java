@@ -59,13 +59,10 @@ public class BookingDtoTest {
 
         JsonContent<BookingInfoDto> result = bookingInfoDtoJacksonTester.write(bookingInfoDto);
 
-        assertThat(result).hasJsonPath("$.start");
-        assertThat(result).extractingJsonPathStringValue("$.start")
-                .isEqualTo(bookingInfoDto.getStart().toString());
+        BookingInfoDto parsed = bookingInfoDtoJacksonTester.parseObject(result.getJson());
 
-        assertThat(result).hasJsonPath("$.end");
-        assertThat(result).extractingJsonPathStringValue("$.end")
-                .isEqualTo(bookingInfoDto.getEnd().toString());
+        assertThat(parsed.getStart()).isEqualTo(bookingInfoDto.getStart());
+        assertThat(parsed.getEnd()).isEqualTo(bookingInfoDto.getEnd());
 
         BookingInfoDto bookingInfoDtoForTest = bookingInfoDtoJacksonTester.parseObject(result.getJson());
 
