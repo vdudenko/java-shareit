@@ -17,6 +17,7 @@ import ru.practicum.shareit.user.model.User;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.utils.HeaderConstants.USER_ID_HEADER;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -68,7 +69,7 @@ public class BookingControllerTest {
                 .thenReturn(responseBooking);
 
         mockMvc.perform(post("/bookings")
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
@@ -93,7 +94,7 @@ public class BookingControllerTest {
                 .thenReturn(approvedBooking);
 
         mockMvc.perform(patch("/bookings/{bookingId}", bookingId)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .param("approved", approved.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(bookingId))
@@ -128,7 +129,7 @@ public class BookingControllerTest {
                 .thenReturn(booking);
 
         mockMvc.perform(get("/bookings/{bookingId}", bookingId)
-                        .header("X-Sharer-User-Id", userId))
+                        .header(USER_ID_HEADER, userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(bookingId))
                 .andExpect(jsonPath("$.item.id").value(1));
@@ -162,7 +163,7 @@ public class BookingControllerTest {
                 .thenReturn(bookings);
 
         mockMvc.perform(get("/bookings")
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .param("state", state))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -191,7 +192,7 @@ public class BookingControllerTest {
                 .thenReturn(bookings);
 
         mockMvc.perform(get("/bookings/owner")
-                        .header("X-Sharer-User-Id", userId)
+                        .header(USER_ID_HEADER, userId)
                         .param("state", state))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
